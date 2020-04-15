@@ -225,10 +225,10 @@ class SingleOutputTask(task.Task):
                 fh.close()
                 text_a = tokenization.convert_to_unicode(statement)
                 text_b = None
-                if "test" in split or "diagnostic" in split:
-                    label = self._get_dummy_label()
-                else:
-                    label = tokenization.convert_to_unicode(reduced_label)
+                # if "test" in split or "diagnostic" in split:
+                #     label = self._get_dummy_label()
+                # else:
+                label = tokenization.convert_to_unicode(reduced_label)
                 examples.append(InputExample(eid=i, task_name=self.name,
                                              text_a=text_a, text_b=text_b, label=label))
             except Exception as ex:
@@ -526,3 +526,19 @@ class ScientificStatements(ClassificationTask):
         return self._create_examples(read_txt(
             os.path.join(self.config.raw_data_dir(self.name), split + ".txt"),
             max_lines=None), split)
+
+
+class ScientificStatementsCapped(ClassificationTask):
+    """Scientific Statement Classification over arXiv, 100k cap."""
+
+    def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
+        super(ScientificStatementsCapped, self).__init__(config, "scistatementscapped", tokenizer,
+                                                         ["abstract", "acknowledgement", "conclusion", "definition", "example", "introduction", "keywords", "problem", "proof", "proposition", "relatedwork", "remark", "result"])
+
+    def _create_examples(self, lines, split):
+        return self._load_statements(lines, split)
+
+    def get_examples(self, split):
+        return self._create_examples(read_txt(
+            os.path.join(self.config.raw_data_dir(self.name), split + ".txt"),
+            max_lines=100000), split)
