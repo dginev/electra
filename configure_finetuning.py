@@ -143,11 +143,13 @@ class FinetuningConfig(object):
                 self.write_test_outputs = False
             elif task_name == "chunk":
                 self.max_seq_length = 256
-            elif task_name == "scistatements" or task_name == "scistatementscapped":
+            elif task_name == "scistatements" or task_name == "scistatementscapped" or task_name == "scistatements2019" or task_name == "scistatements2019capped":
                 self.max_seq_length = 480
                 self.num_train_epochs = 2.0
                 self.train_batch_size = 24
                 self.eval_batch_size = 24
+                if task_name == "scistatementscapped":
+                    self.num_train_epochs = 50.0
             else:
                 self.num_train_epochs = 3.0
 

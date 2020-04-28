@@ -384,15 +384,41 @@ def read_tsv(input_file, quotechar=None, max_lines=None):
         return lines
 
 
-def read_txt(input_file, max_lines=None):
-    """Reads a plain text file."""
+def read_txt(input_file, class_cap=None):
+    """Reads a plain text file, each line containing a file-path in a labeled directory."""
+    # e.g. abstract/000004ed39610e77ae70251439074eaa9afc734e1415487862131bb15b58f1c4.txt
     lines = []
     with tf.io.gfile.GFile(input_file, "r") as f:
         lines = [line.rstrip() for line in f.readlines()]
         random.shuffle(lines)
-        if (max_lines and (len(lines) > max_lines)):
-            lines = lines[:max_lines]
-    return lines
+        if (class_cap):
+            classes = {}
+            for v in set(REDUCED_STATEMENT_CLASSES.values()):
+                classes[v] = 0
+            capped_lines = []
+            for line in lines:
+                m = re.match(r"^\w+", line)
+                c = m.group(0)
+                if (c in REDUCED_STATEMENT_CLASSES):
+                    count = classes.get(c, 0)
+                    if count < class_cap:
+                        new_count = count + 1
+                        classes[c] = new_count
+                        capped_lines.append(line)
+                        if new_count == class_cap:
+                            all_done = True
+                            # check if caps are all filled, in which case terminate
+                            for v in classes.values():
+                                if v < class_cap:
+                                    all_done = False
+                            if all_done:
+                                break
+            # print("---")
+            # print(capped_lines)
+            # print("---")
+            return capped_lines
+        else:
+            return lines
 
 
 class MNLI(ClassificationTask):
@@ -513,7 +539,7 @@ class STS(RegressionTask):
 
 
 class ScientificStatements(ClassificationTask):
-    """Scientific Statement Classification over arXiv."""
+    """13 class, Scientific Statement Classification over arXMLiv 2018."""
 
     def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
         super(ScientificStatements, self).__init__(config, "scistatements", tokenizer,
@@ -525,11 +551,14 @@ class ScientificStatements(ClassificationTask):
     def get_examples(self, split):
         return self._create_examples(read_txt(
             os.path.join(self.config.raw_data_dir(self.name), split + ".txt"),
-            max_lines=None), split)
+            class_cap=None), split)
+
+    def get_scorer(self):
+        return classification_metrics.SKF1Scorer()
 
 
 class ScientificStatementsCapped(ClassificationTask):
-    """Scientific Statement Classification over arXiv, 100k cap."""
+    """13 class, Scientific Statement Classification over arXMLiv 2018, 1 cap."""
 
     def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
         super(ScientificStatementsCapped, self).__init__(config, "scistatementscapped", tokenizer,
@@ -539,6 +568,29 @@ class ScientificStatementsCapped(ClassificationTask):
         return self._load_statements(lines, split)
 
     def get_examples(self, split):
+        if split == "train":
+            cap = 1
+        else:
+            cap = None
         return self._create_examples(read_txt(
             os.path.join(self.config.raw_data_dir(self.name), split + ".txt"),
-            max_lines=100000), split)
+            class_cap=cap), split)
+
+    def get_scorer(self):
+        return classification_metrics.SKF1Scorer()
+
+
+class ScientificStatements2019(ClassificationTask):
+    """20 class Scientific Statement Classification over arXMLiv 2019."""
+
+    def __init__(self, config: configure_finetuning.FinetuningConfig, tokenizer):
+        super(ScientificStatements, self).__init__(config, "scistatements", tokenizer,
+                                                   ["TODO"])
+
+    def _create_examples(self, lines, split):
+        return self._load_statements(lines, split)
+
+    def get_examples(self, split):
+        return self._create_examples(read_txt(
+            os.path.join(self.config.raw_data_dir(self.name), split + ".txt"),
+            class_cap=None), split)

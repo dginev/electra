@@ -70,5 +70,9 @@ def get_task(config: configure_finetuning.FinetuningConfig, task_name,
         return classification_tasks.ScientificStatements(config, tokenizer)
     elif task_name == "scistatementscapped":
         return classification_tasks.ScientificStatementsCapped(config, tokenizer)
+    elif task_name == "scistatements2019":
+        return classification_tasks.ScientificStatements2019(config, tokenizer)
+    elif task_name == "scistatements2019capped":
+        return classification_tasks.ScientificStatements2019Capped(config, tokenizer)
     else:
         raise ValueError("Unknown task " + task_name)
